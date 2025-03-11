@@ -63,10 +63,11 @@ class AltitudeMPC:
         self.opti.minimize(obj)
 
         # boundary and control conditions
-        self.opti.subject_to(self.opti.bounded(-math.inf, z, self.quad.max_z))
-        self.opti.subject_to(self.opti.bounded(self.quad.min_dz, dz, self.quad.max_dz))
+        # self.opti.subject_to(self.opti.bounded(-math.inf, z, self.quad.max_z))
+        # self.opti.subject_to(self.opti.bounded(self.quad.min_dz, dz, self.quad.max_dz))
 
-        self.opti.subject_to(self.opti.bounded(self.quad.min_thrust, thrust, self.quad.max_thrust))
+        # self.opti.subject_to(self.opti.bounded(self.quad.min_thrust, thrust, self.quad.max_thrust))
+        self.opti.subject_to(self.opti.bounded(-ca.pi/4, self.opt_states[:,2], ca.pi/4))
 
         opts_setting = {'ipopt.max_iter':2000,
                         'ipopt.print_level':0,
