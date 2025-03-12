@@ -1,5 +1,5 @@
 import numpy as np
-
+import time 
 class Robot:
     def __init__(self, X = [0, 0, 0, 0, 0, 0]):
         # The configuration of TWIP 
@@ -54,18 +54,22 @@ class Robot:
         psi = self.X[4] 
         dpsi = self.X[5]
         
-        # Update the state vector
         self.X = np.array([x, dx, theta, dtheta, psi, dpsi])
-
-        # Apply correct control
         rightTorque, leftTorque = self.correctControl(rightTorque, leftTorque)
-
-        # Update state based on dynamics
-        dX = (self.I + self.A * dt) @ np.array([x, dx, theta, dtheta, psi, dpsi]) + self.B @ np.array([rightTorque, leftTorque]) * dt
-        self.X += dX * dt
+        dX = (self.I + self.A * dt) @ np.array([x, dx, theta, dtheta, psi, dpsi]).T + self.B @ np.array([rightTorque, leftTorque]).T * dt
+        self.X =self.X +  dX * dt
 
     def getPosition(self):
         return self.X[0], self.X[1]
 
     def getState(self):
         return self.X
+
+
+    
+    
+robot = Robot(X=[0, 0, 0, 0, 0, 0])
+for i in range(1000):
+    robot.updateConfiguration(0.1, -0.1, 0.02)
+    print(f"Time: {i * 0.02}, Position: {robot.getPosition()}")
+    time.sleep(0.02)
