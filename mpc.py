@@ -2,17 +2,16 @@ import casadi as ca
 import numpy as np
 import math
 class RobotMPC:
-    def __init__(self, robot, T=0.02, N=30, Q=np.diag([40.0, 1.0, 0.5, 0.1, 0.1, 0.1]), R=np.diag([1.0, 1.0])):
+    def __init__(self, robot, T=0.02, N=30, Q=np.diag([10.0, 0.0, 50.0, 0.0, 10.0, 0.0]), R=np.diag([1.0, 1.0])):
         self.robot = robot
         self.T = T  # Time step
         self.N = N  # Horizon length
         self.Q = Q
         self.R = R
         
-        self.next_states = np.zeros((self.N + 1, 6))  # Including 0th state
+        self.next_states = np.zeros((self.N + 1, 6))  
         self.u0 = np.zeros((self.N, 2))  # Initial control guess
-        
-        self.setupController()
+        self.setup_controller()
     def dynamics(self, x_, dx_, theta_, dtheta_, psi_, dpsi_, u_):
         A = self.robot.A
         B = self.robot.B
@@ -22,8 +21,8 @@ class RobotMPC:
         control_term = ca.mtimes(B * self.T, u_.T)
         f = state_term + control_term
         return f
-    def setupController(self):
-
+    
+    def setup_controller(self):
         self.opti = ca.Opti()
         self.opt_controls = self.opti.variable(self.N, 2)  # (N x 2) control inputs (torques)
         self.opt_states = self.opti.variable(self.N + 1, 6)  # (N+1 x 6) states
@@ -36,7 +35,6 @@ class RobotMPC:
             dtheta_ = self.opt_states[i, 3]
             psi_ = self.opt_states[i, 4]
             dpsi_ = self.opt_states[i, 5]
-            
             u_ = self.opt_controls[i, :]
             next_state = self.opt_states[i, :] + self.dynamics(x_, dx_, theta_, dtheta_, psi_, dpsi_, u_).T * self.T
             self.opti.subject_to(self.opt_states[i + 1, :] == next_state)
@@ -53,8 +51,7 @@ class RobotMPC:
         self.opti.minimize(obj)
         
         self.opti.subject_to(self.opti.bounded(-np.pi / 4, self.opt_states[:, 2], np.pi / 4))  # theta constraints
-        self.opti.subject_to(self.opti.bounded(-2, self.opt_states[:, 3], 2))  # dtheta constraints
-        
+        # self.opti.subject_to(self.opti.bounded(-1, self.opt_states[:, 3], 1))  # dtheta constraints
         self.opti.subject_to(self.opti.bounded(-1.5, self.opt_controls[:, 0], 1.5))  # right torque
         self.opti.subject_to(self.opti.bounded(-1.5, self.opt_controls[:, 1], 1.5))  # left torque
         
@@ -65,12 +62,9 @@ class RobotMPC:
             'ipopt.acceptable_tol': 1e-8,
             'ipopt.acceptable_obj_change_tol': 1e-3
         }
-        
         self.opti.solver('ipopt', opts_setting)
-    
-    def solve(self, reference_state):
         self.opti.subject_to(self.opt_states[0, :].T == self.robot.X)
-        
+    def solve(self, reference_state):      
         self.opti.set_value(self.reference_state, np.array(reference_state).reshape(6, 1))
         self.opti.set_initial(self.opt_states, self.next_states)
         self.opti.set_initial(self.opt_controls, self.u0)
