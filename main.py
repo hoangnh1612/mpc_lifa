@@ -1,8 +1,8 @@
 import time
 from robot import Robot
 from mpc import RobotMPC
-
-
+import numpy as np
+N = 30
 robot = Robot(X=[0, 0, 0, 0, 0, 0])
 mpc_controller = RobotMPC(robot)
 
