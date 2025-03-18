@@ -1,8 +1,9 @@
 import casadi as ca
 import numpy as np
 import math
+from params import * 
 class RobotMPC:
-    def __init__(self, robot, T=0.02, N=30, Q=np.diag([4.0, 0.5, 50.0, 0.5, 1.5, 0.5]), R=np.diag([1.0, 1.0])):
+    def __init__(self, robot, T=T, N=30, Q=np.diag([4.0, 0.5, 50.0, 0.5, 1.5, 0.5]), R=np.diag([1.0, 1.0])):
         self.robot = robot
         self.T = T  # Time step
         self.N = N  # Horizon length
@@ -37,7 +38,7 @@ class RobotMPC:
             psi_ = self.opt_states[i, 4]
             dpsi_ = self.opt_states[i, 5]
             u_ = self.opt_controls[i, :]
-            next_state = self.opt_states[i, :] + self.dynamics(x_, dx_, theta_, dtheta_, psi_, dpsi_, u_).T * self.T
+            next_state = self.dynamics(x_, dx_, theta_, dtheta_, psi_, dpsi_, u_).T
             self.opti.subject_to(self.opt_states[i + 1, :] == next_state)
         obj = 0
         for i in range(self.N):
@@ -46,14 +47,15 @@ class RobotMPC:
             state_cost = ca.mtimes([state_error, self.Q, state_error.T])
             control_cost = ca.mtimes([control_effort, self.R, control_effort.T])
             obj += state_cost + control_cost
+            # obj += state_cost
         
         self.opti.minimize(obj)
         
-        self.opti.subject_to(self.opti.bounded(-np.pi / 5, self.opt_states[:, 2], np.pi / 5))  # theta constraints
+        self.opti.subject_to(self.opti.bounded(-np.pi / 4, self.opt_states[:, 2], np.pi / 4))  # theta constraints
         self.opti.subject_to(self.opti.bounded(-1.5, self.opt_controls[:, 0], 1.5))  # right torque
         self.opti.subject_to(self.opti.bounded(-1.5, self.opt_controls[:, 1], 1.5))  # left torque
-        self.opti.subject_to(self.opti.bounded(-2, self.opt_states[:, 1], 2))  # dx constraints
-        self.opti.subject_to(self.opti.bounded(-1, self.opt_states[:, 3], 1)) 
+        self.opti.subject_to(self.opti.bounded(-0.8, self.opt_states[:, 1], 0.8))  # dx constraints
+        self.opti.subject_to(self.opti.bounded(-2, self.opt_states[:, 3], 2)) 
         
         opts_setting = {
             'ipopt.max_iter': 2000,
@@ -89,7 +91,6 @@ class RobotMPC:
                     print("Debugging infeasibility:")
                     print(f"Current state: {self.robot.X}")
                     print(f"Reference state: {reference_state}")
-                    self.opti.subject_to(self.opti.bounded(-1.0, self.opt_states[:, 1], 1.0)) 
                     try:
                         sol = self.opti.solve()
                         return sol.value(self.opt_controls)[0]

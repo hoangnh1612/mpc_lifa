@@ -46,17 +46,9 @@ class Robot:
         return rightTorque, leftTorque
 
     def updateConfiguration(self, rightTorque, leftTorque, dt):
-        # Extract current state components
-        x = self.X[0] 
-        dx = self.X[1]
-        theta = self.X[2] 
-        dtheta = self.X[3] 
-        psi = self.X[4] 
-        dpsi = self.X[5]
-        self.X = np.array([x, dx, theta, dtheta, psi, dpsi])
         rightTorque, leftTorque = self.correctControl(rightTorque, leftTorque)
-        dX = (self.I + self.A * dt) @ np.array([x, dx, theta, dtheta, psi, dpsi]).T + self.B @ np.array([rightTorque, leftTorque]).T * dt
-        self.X =self.X +  dX * dt
+        dX = (self.I + self.A * dt) @ self.X + self.B @ np.array([rightTorque, leftTorque]) * dt
+        self.X = self.X + dX
 
     def getPosition(self):
         return self.X[0], self.X[2]

@@ -21,7 +21,7 @@ class Controller:
         self.robot = robot
         self.Q = Q
         self.R = R
-        self.dt = 0.02
+        self.dt = 0.01
         self.prev_control = 0
     def solve(self, reference_state):
         self.opti = ca.Opti()
