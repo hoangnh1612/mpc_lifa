@@ -10,7 +10,7 @@ class RobotMPC:
         self.Q = Q
         self.R = R
         
-        self.next_states = np.zeros((self.N + 1, 6))  
+        self.next_states = np.ones((self.N + 1, 6))  
         self.u0 = np.zeros((self.N, 2))  # Initial control guess
         self.setup_controller()
     def dynamics(self, x_, dx_, theta_, dtheta_, psi_, dpsi_, u_):
@@ -19,7 +19,7 @@ class RobotMPC:
         I = np.eye(6)
         
         state_term = ca.mtimes((I + A * self.T), ca.vertcat(x_, dx_, theta_, dtheta_, psi_, dpsi_))
-        control_term = ca.mtimes(B * self.T, u_.T)
+        control_term = ca.mtimes(B, u_.T) * self.T
         f = state_term + control_term
         return f
     
@@ -38,7 +38,7 @@ class RobotMPC:
             psi_ = self.opt_states[i, 4]
             dpsi_ = self.opt_states[i, 5]
             u_ = self.opt_controls[i, :]
-            next_state = self.dynamics(x_, dx_, theta_, dtheta_, psi_, dpsi_, u_).T
+            next_state = self.opt_states[i,:] + self.dynamics(x_, dx_, theta_, dtheta_, psi_, dpsi_, u_).T * self.T
             self.opti.subject_to(self.opt_states[i + 1, :] == next_state)
         obj = 0
         for i in range(self.N):
@@ -86,7 +86,6 @@ class RobotMPC:
                 return u_res[0]
             except Exception as e:
                 print(f"Optimization failed: {e}")
-                # Try to debug infeasibility
                 if 'Infeasible_Problem_Detected' in str(e):
                     print("Debugging infeasibility:")
                     print(f"Current state: {self.robot.X}")
@@ -97,3 +96,5 @@ class RobotMPC:
                     except:
                         return np.array([0, 0])
                 return np.array([0, 0])
+
+

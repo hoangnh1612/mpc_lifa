@@ -48,7 +48,7 @@ class Robot:
     def updateConfiguration(self, rightTorque, leftTorque, dt):
         rightTorque, leftTorque = self.correctControl(rightTorque, leftTorque)
         dX = (self.I + self.A * dt) @ self.X + self.B @ np.array([rightTorque, leftTorque]) * dt
-        self.X = self.X + dX
+        self.X = self.X + dX * dt
 
     def getPosition(self):
         return self.X[0], self.X[2]
